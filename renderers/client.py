@@ -241,7 +241,8 @@ async def generate(
 
     Returns a dict with: request_id, prompt_ids, renderer_prompt_ids,
     mm_placeholders, completion_ids, completion_logprobs, content,
-    reasoning_content, tool_calls, finish_reason, routed_experts,
+    reasoning_content, reasoning_complete, reasoning_tokens, tool_calls,
+    finish_reason, routed_experts,
     multi_modal_data, prompt_attribution. ``renderer_prompt_ids`` is the
     unexpanded logical prompt when ``process_multimodal=False`` and ``None``
     otherwise.
@@ -406,6 +407,7 @@ async def generate(
         "tool_calls": parsed.tool_calls,
         "finish_reason": finish_reason,
         "reasoning_complete": parsed.reasoning_complete,
+        "reasoning_tokens": parsed.reasoning_tokens,
         "routed_experts": routed_experts,
         "sampling_mask": sampling_mask,
         # The mm sidecar consumed on the request side, surfaced back so

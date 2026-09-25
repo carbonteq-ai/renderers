@@ -842,12 +842,14 @@ def test_generate_forwards_reasoning_state_without_classifying_acceptance(
                 content="",
                 reasoning_content="reasoning",
                 reasoning_complete=reasoning_complete,
+                reasoning_tokens=2,
             )
 
     client = _FakeClient()
     client.choice["finish_reason"] = finish
     result = _run_generate(client, ContextRenderer())
     assert result["reasoning_complete"] is reasoning_complete
+    assert result["reasoning_tokens"] == 2
     assert result["finish_reason"] == finish
     assert result["completion_ids"] == [7, 8]
     assert result["completion_logprobs"] == [-0.1, -0.2]

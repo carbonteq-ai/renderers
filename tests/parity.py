@@ -268,6 +268,42 @@ MODEL_CATALOG = (
         roundtrip=True,
         bridge=False,
     ),
+    # CarbonTeq fork: Posttrain catalog models (renderers/catalog_models.py).
+    # Gemma 4 Unified 12B (image + audio) is mapped for text; its media
+    # inputs are not registered or qualified, so it stays out of the
+    # image-checkpoint suite.
+    _model(
+        "google/gemma-4-12B-it",
+        shared=False,
+        roundtrip=False,
+        extra_suites={"disabled-thinking"},
+    ),
+    _model("LiquidAI/LFM2.5-1.2B-Thinking"),
+    _model("LiquidAI/LFM2.5-2.6B"),
+    # K2-Horizon's template raises on any assistant message without a thinking
+    # field, so the generic assistant scenarios have no reference rendering.
+    # Its reasoning, tool and stop-token behavior is covered by
+    # test_catalog_model_renderers.py and the reasoning suites.
+    _model(
+        "IFM/K2-Horizon-7B",
+        shared=False,
+        roundtrip=False,
+        excluded={
+            "terminal-assistant",
+            "multi-turn",
+            "empty-assistant",
+            "tool-call-content",
+            "tool-call-none",
+            "multiple-tool-calls",
+            "tool-response",
+            "named-tool-response",
+            "consecutive-tool-responses",
+            "full-tool-cycle",
+            "multi-step-tool-cycle",
+        },
+    ),
+    _model("Nanbeige/Nanbeige4.2-3B"),
+    _model("XHToken/Spark-X2.5-4B"),
 )
 
 
@@ -774,7 +810,12 @@ def scenario_is_valid(
     # retains it so sampled streams remain byte-prefix-stable across rerenders.
     # That behavior is covered by the stability suite, not reference parity.
     if (
-        case.model in {"google/gemma-4-26B-A4B-it", "google/gemma-4-31B-it"}
+        case.model
+        in {
+            "google/gemma-4-12B-it",
+            "google/gemma-4-26B-A4B-it",
+            "google/gemma-4-31B-it",
+        }
         and kwargs.get("enable_thinking", False) is False
         and any(
             message.get("role") == "assistant"

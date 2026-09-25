@@ -16,10 +16,16 @@ for _case in MODEL_CATALOG:
     _CASES.setdefault(_case.resolved_renderer, _case.model)
 
 
+_TEMPLATE_RENDERED = {"default", "k2-horizon", "lfm2.5", "nanbeige4.2", "spark2.5"}
+
+
 @lru_cache(None)
 def _renderer(name):
     config = config_from_name(name)
-    updates = {"thinking_retention": "all"}
+    # Template-rendered renderers (DefaultRenderer and the CarbonTeq fork's
+    # catalog renderers) re-render history through the chat template and
+    # reject an explicit retention policy.
+    updates = {} if name in _TEMPLATE_RENDERED else {"thinking_retention": "all"}
     if "enable_thinking" in type(config).model_fields:
         updates["enable_thinking"] = True
     if "thinking" in type(config).model_fields:
@@ -63,6 +69,13 @@ def _thinking_stream(name, tok, renderer):
             _encode(tok, "unfinished reasoning"),
             [renderer._think_end, *_encode(tok, "Answer")],
         )
+    if name == "k2-horizon":
+        # The generation prompt opens the effort's <ifm|think*> channel.
+        return (
+            prompt,
+            _encode(tok, "unfinished reasoning"),
+            _encode(tok, "</ifm|think>Answer"),
+        )
     prefix = tok.decode(prompt, skip_special_tokens=False).rstrip()
     opener = "" if prefix.endswith("<think>") else "<think>"
     return (
@@ -90,7 +103,8 @@ def test_every_reasoning_renderer_preserves_unfinished_reasoning(name, stop):
     assert completed.content == "Answer"
 
 
-@pytest.mark.parametrize("name", sorted(set(_CASES) - {"llama-3", "default"}))
+# Template-rendered renderers re-render user turns instead of bridging them.
+@pytest.mark.parametrize("name", sorted(set(_CASES) - {"llama-3"} - _TEMPLATE_RENDERED))
 def test_every_reasoning_bridge_preserves_prefix_or_refuses_sampled_stop(name):
     tok, renderer = _renderer(name)
     prompt, incomplete, _ = _thinking_stream(name, tok, renderer)
@@ -192,6 +206,11 @@ _STRICT_TOOL_OPENERS = {
     "laguna-s-2.1",
     "laguna-xs-2.1",
     "laguna-xs.2",
+    # CarbonTeq fork renderers require an explicit close before a tool call.
+    "k2-horizon",
+    "lfm2.5",
+    "nanbeige4.2",
+    "spark2.5",
 }
 
 
@@ -414,6 +433,7 @@ def test_reasoning_markers_override_generation_mode(name, enabled, origin, endin
             "<|end_message|><|message_model|><|content_text|>",
         ),
         "hy3": ("<think:opensource>", "</think:opensource>"),
+        "k2-horizon": ("<ifm|think>", "</ifm|think>"),
     }.get(name, ("<think>", "</think>"))
     prompt_text = {
         "prompt": opening + "Earlier reasoning ",
@@ -442,7 +462,10 @@ def test_reasoning_markers_override_generation_mode(name, enabled, origin, endin
 
 
 @pytest.mark.parametrize(
-    "name", sorted(set(_CASES) - {"llama-3", "gpt-oss", "gemma4", "inkling", "default"})
+    "name",
+    sorted(
+        set(_CASES) - {"llama-3", "gpt-oss", "gemma4", "inkling"} - _TEMPLATE_RENDERED
+    ),
 )
 @pytest.mark.parametrize("closed", [False, True])
 def test_late_think_markers_stay_content(name, closed):

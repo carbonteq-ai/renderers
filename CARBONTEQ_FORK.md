@@ -88,6 +88,66 @@ Conflict-sensitive areas on rebase: `scan_reasoning`'s return paths, every
 After a rebase, run the regression tests and search for any new
 `ParsedResponse(` site that lacks `reasoning_tokens`.
 
+### Catalog model renderers
+
+Why: upstream has dedicated renderers for Qwen 3.5 and Gemma 4 only. The
+other Posttrain catalog families fell back to `DefaultRenderer`, which assumes
+Qwen's `<|im_start|>assistant\n` header, `<think>` markers and the tokenizer's
+`eos_token` as the only stop. That fallback missed Spark's prompt-opened
+thought (`<|Bot|>` header) and K2's `<ifm|think*>` channel entirely, and leaked
+K2's `<|ifm|im_end|>` turn end into content. The LFM2 and K2 tool parsers lived
+in Verifiers.
+
+Behavior that must survive an upstream merge:
+
+- `renderers/catalog_models.py`: `MarkedReasoningRenderer`, a
+  `DefaultRenderer` subclass. Each family declares its assistant header,
+  single-token reasoning markers, turn-end tokens and tool parser. Parsing
+  detects reasoning opened by the prompt, counts `reasoning_tokens` exactly,
+  and strips turn ends.
+- The four family renderers:
+  - `LFM25Renderer` (`lfm2.5`): `lfm2` pythonic tool calls, and the tool-cycle
+    bridge (`bridge_lfm25_tool_cycle`) that keeps sampled history
+    byte-identical when tool results are appended.
+  - `K2HorizonRenderer` (`k2-horizon`): `reasoning_effort` selects the
+    `<ifm|think>`, `<ifm|think_fast>` or `<ifm|think_faster>` channel.
+    `k2-ifm` tool calls.
+  - `Nanbeige42Renderer` (`nanbeige4.2`): schema-aware Qwen 3.5 XML tool calls.
+  - `Spark25Renderer` (`spark2.5`): schema-aware GLM tool calls.
+- `renderers/catalog_parsers.py`: `LFM2ToolParser`, `K2IFMToolParser` and
+  `K2IFMReasoningParser`, moved from Verifiers and registered in
+  `renderers/parsers.py`.
+- Registration:
+  - configs `LFM25RendererConfig`, `K2HorizonRendererConfig`,
+    `Nanbeige42RendererConfig` and `Spark25RendererConfig` (subclasses of
+    `DefaultRendererConfig`; template kwargs pass through) in
+    `renderers/configs.py`, including the `RendererConfig` union;
+  - entries in `RENDERER_REGISTRY` and `MODEL_RENDERER_MAP` in
+    `renderers/base.py`;
+  - `google/gemma-4-12B-it` (Gemma 4 Unified: image and audio encoders)
+    mapped to `gemma4` for text only, and listed with 26B and 31B in
+    `_EMPTY_THOUGHT_PREFILL_MODELS`, since it ships the same template
+    revision. It is deliberately absent from `MULTIMODAL_MODELS`: its media
+    processor path is not qualified.
+- `renderers/client.py` `generate()` returns `reasoning_tokens` next to
+  `reasoning_content`.
+- Like `DefaultRenderer`, these renderers reject an explicit
+  `thinking_retention`. Only LFM bridges, and only tool results; other
+  extensions re-render through the chat template.
+
+Regression tests:
+
+- `tests/test_catalog_model_renderers.py`: every catalog model's mapping,
+  prompt-opened thought then tool call, cut-off thought, late markers,
+  self-contained thought, the K2 efforts, and the LFM bridge.
+- The catalog models added to `tests/parity.py` `MODEL_CATALOG`, which runs the
+  upstream parity and reasoning suites.
+- In `tests/test_reasoning_boundaries.py`, `_TEMPLATE_RENDERED` exempts these
+  renderers from the retention and user-turn bridge tests, as upstream exempts
+  `default`.
+- K2-Horizon is excluded from the generic assistant parity scenarios, because
+  its template raises on assistant messages without a thinking field.
+
 ## Validation
 
     uv sync --python 3.13

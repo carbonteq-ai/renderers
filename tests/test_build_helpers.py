@@ -29,6 +29,7 @@ def test_build_training_sample_ids_match(model_name, tokenizer, renderer):
     if (
         model_name
         in {
+            "google/gemma-4-12B-it",
             "google/gemma-4-26B-A4B-it",
             "google/gemma-4-31B-it",
         }

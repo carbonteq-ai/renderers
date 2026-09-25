@@ -988,6 +988,13 @@ MODEL_RENDERER_MAP: dict[str, str] = {
     # disabled-thinking empty-channel prefill used by the 26B/31B revision;
     # Gemma4Renderer detects that small template variant per tokenizer.
     "google/gemma-4-E2B-it": "gemma4",
+    # CarbonTeq fork: Posttrain catalog models without an upstream mapping.
+    "google/gemma-4-12B-it": "gemma4",
+    "LiquidAI/LFM2.5-1.2B-Thinking": "lfm2.5",
+    "LiquidAI/LFM2.5-2.6B": "lfm2.5",
+    "IFM/K2-Horizon-7B": "k2-horizon",
+    "Nanbeige/Nanbeige4.2-3B": "nanbeige4.2",
+    "XHToken/Spark-X2.5-4B": "spark2.5",
     "google/gemma-4-E4B-it": "gemma4",
     "google/gemma-4-26B-A4B-it": "gemma4",
     "google/gemma-4-31B-it": "gemma4",
@@ -1333,6 +1340,12 @@ def _populate_registry():
     from renderers.deepseek_r1 import DeepSeekR1Renderer
     from renderers.deepseek_v3 import DeepSeekV3Renderer
     from renderers.deepseek_v4 import DeepSeekV4Renderer
+    from renderers.catalog_models import (
+        K2HorizonRenderer,
+        LFM25Renderer,
+        Nanbeige42Renderer,
+        Spark25Renderer,
+    )
     from renderers.default import DefaultRenderer
     from renderers.gemma4 import Gemma4Renderer
     from renderers.glm5 import GLM5Renderer, GLM51Renderer, GLM53Renderer
@@ -1365,6 +1378,11 @@ def _populate_registry():
     RENDERER_REGISTRY.update(
         {
             "default": DefaultRenderer,
+            # CarbonTeq fork: catalog model families (renderers/catalog_models.py).
+            "lfm2.5": LFM25Renderer,
+            "k2-horizon": K2HorizonRenderer,
+            "nanbeige4.2": Nanbeige42Renderer,
+            "spark2.5": Spark25Renderer,
             "qwen3": Qwen3Renderer,
             "prime-qwen3": PrimeQwen3Renderer,
             "qwen3-vl": Qwen3VLRenderer,

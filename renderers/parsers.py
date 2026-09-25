@@ -455,15 +455,25 @@ class ThinkTextReasoningParser:
 # ── Registries ───────────────────────────────────────────────────────
 
 
+from renderers.catalog_parsers import (  # noqa: E402 — CarbonTeq fork
+    K2IFMReasoningParser,
+    K2IFMToolParser,
+    LFM2ToolParser,
+)
+
 TOOL_PARSERS: dict[str, type] = {
     "qwen3": Qwen3ToolParser,
     "qwen3.5": Qwen35ToolParser,
     "glm": GlmToolParser,
     "deepseek-v3": DeepSeekV3ToolParser,
+    # CarbonTeq fork: catalog model formats (renderers/catalog_parsers.py).
+    "lfm2": LFM2ToolParser,
+    "k2-ifm": K2IFMToolParser,
 }
 
 REASONING_PARSERS: dict[str, type] = {
     "think": ThinkTextReasoningParser,
+    "k2-ifm": K2IFMReasoningParser,
 }
 
 

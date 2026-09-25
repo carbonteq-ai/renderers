@@ -58,6 +58,8 @@ _ESCAPE = '<|"|>'
 _EMPTY_THOUGHT_PREFILL_MODELS = {
     "google/gemma-4-26B-A4B-it",
     "google/gemma-4-31B-it",
+    # CarbonTeq fork: 12B ships the same template revision.
+    "google/gemma-4-12B-it",
 }
 
 

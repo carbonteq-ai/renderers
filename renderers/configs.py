@@ -179,6 +179,40 @@ class DefaultRendererConfig(BaseRendererConfig):
         return self
 
 
+class LFM25RendererConfig(DefaultRendererConfig):
+    """Config for ``LFM25Renderer`` (CarbonTeq fork): LiquidAI LFM2.5.
+
+    Renders with the tokenizer's chat template like ``DefaultRenderer``;
+    template kwargs are forwarded verbatim. ``tool_parser`` defaults to
+    ``lfm2`` when unset.
+    """
+
+    name: Literal["lfm2.5"] = "lfm2.5"
+
+
+class K2HorizonRendererConfig(DefaultRendererConfig):
+    """Config for ``K2HorizonRenderer`` (CarbonTeq fork): IFM K2-Horizon.
+
+    The template kwarg ``reasoning_effort`` (``high``/``medium``/``low``,
+    default ``high``) selects the ``<ifm|think>``/``<ifm|think_fast>``/
+    ``<ifm|think_faster>`` channel the renderer parses.
+    """
+
+    name: Literal["k2-horizon"] = "k2-horizon"
+
+
+class Nanbeige42RendererConfig(DefaultRendererConfig):
+    """Config for ``Nanbeige42Renderer`` (CarbonTeq fork): Nanbeige 4.2."""
+
+    name: Literal["nanbeige4.2"] = "nanbeige4.2"
+
+
+class Spark25RendererConfig(DefaultRendererConfig):
+    """Config for ``Spark25Renderer`` (CarbonTeq fork): XHToken Spark X2.5."""
+
+    name: Literal["spark2.5"] = "spark2.5"
+
+
 class Qwen3RendererConfig(BaseRendererConfig):
     """Qwen3 (text-only) renderer config."""
 
@@ -998,6 +1032,10 @@ RendererConfig = Annotated[
     Union[
         AutoRendererConfig,
         DefaultRendererConfig,
+        LFM25RendererConfig,
+        K2HorizonRendererConfig,
+        Nanbeige42RendererConfig,
+        Spark25RendererConfig,
         Qwen3RendererConfig,
         PrimeQwen3RendererConfig,
         Qwen35RendererConfig,
@@ -1046,6 +1084,10 @@ that renderer supports. Bogus combinations (e.g. ``add_vision_id`` under
 _CONFIG_BY_NAME: dict[str, type[BaseRendererConfig]] = {
     "auto": AutoRendererConfig,
     "default": DefaultRendererConfig,
+    "lfm2.5": LFM25RendererConfig,
+    "k2-horizon": K2HorizonRendererConfig,
+    "nanbeige4.2": Nanbeige42RendererConfig,
+    "spark2.5": Spark25RendererConfig,
     "qwen3": Qwen3RendererConfig,
     "prime-qwen3": PrimeQwen3RendererConfig,
     "qwen3.5": Qwen35RendererConfig,

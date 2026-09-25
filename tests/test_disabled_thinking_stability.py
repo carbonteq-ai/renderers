@@ -41,6 +41,7 @@ _MODELS = [
 
 _EMPTY_WRAPPERS = {
     "google/gemma-4-26B-A4B-it": "<|channel>thought\n<channel|>",
+    "google/gemma-4-12B-it": "<|channel>thought\n<channel|>",
 }
 
 
