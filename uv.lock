@@ -58,6 +58,7 @@ wheels = [
 name = "carbonteq-renderers"
 source = { editable = "." }
 dependencies = [
+    { name = "httpx" },
     { name = "jinja2" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -91,6 +92,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "httpx", specifier = ">=0.27" },
     { name = "jinja2" },
     { name = "numpy" },
     { name = "openai", specifier = ">=1.108.1" },

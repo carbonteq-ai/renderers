@@ -50,6 +50,13 @@ which the accounting below depends on.
 distribution rename and version source described above. Rebase review: keep
 the name and the version path; take upstream's dependency changes.
 
+### Declared httpx dependency
+
+`renderers/client.py` imports `httpx`, which upstream never declares; it
+arrived through `openai`. `openai` 3.x depends on `httpx2` instead, so a clean
+install of the wheel failed on `import renderers`. `pyproject.toml` declares
+`httpx>=0.27`. Retire this delta when upstream declares it.
+
 ### Reasoning token accounting
 
 Why: `ParsedResponse` reports reasoning text and whether it is complete, but not
