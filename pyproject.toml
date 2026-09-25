@@ -3,11 +3,10 @@ requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
-name = "renderers"
-# Derived from git tags by hatch-vcs (see [tool.hatch.version] below).
-# Untagged commits get PEP 440 dev versions like ``0.1.8.dev3+g4c877be4``
-# so any commit is uniquely installable; tagged commits get clean
-# release versions like ``0.1.8``.
+name = "carbonteq-renderers"
+# CarbonTeq fork: the version lives in renderers/_version.py (see
+# [tool.hatch.version] below and CARBONTEQ_FORK.md). The import package stays
+# ``renderers``.
 dynamic = ["version"]
 description = "Chat template renderers — deterministic message-to-token conversion for LLM training"
 readme = "README.md"
@@ -57,39 +56,9 @@ multimodal = [
 ]
 
 [tool.hatch.version]
-source = "vcs"
-# Tags look like ``renderers-v0.1.8`` (prefix matches the publish.yml
-# release contract); strip the prefix to get a PEP 440 version. The
-# regex accepts any PEP 440-valid suffix after the prefix so we can
-# tag pre-releases like ``renderers-v0.2.0rc1`` later if needed.
-tag-pattern = '^renderers-v(?P<version>.+)$'
-# Used when building from a context without VCS metadata (e.g. an
-# sdist consumed by a downstream that doesn't ship .git). Real
-# builds from a checkout get the resolved version; this fallback
-# only fires when the resolver has nothing to go on.
-fallback-version = "0.0.0"
-
-[tool.hatch.version.raw-options]
-# Only stable ``renderers-v<MAJOR>.<MINOR>.<PATCH>`` tags participate in
-# version resolution; legacy per-commit ``.devN`` tags are excluded.
-# Untagged commits get a clean PEP 440 dev version derived from distance
-# to the latest stable tag (e.g. ``0.1.8.dev46``), with no ``+gHASH``
-# local segment so PyPI accepts the wheel directly. setuptools-scm
-# refuses to bump a pre-existing ``.devN`` tag, so matching only stable
-# tags also unblocks local ``uv lock`` / ``uv build`` on untagged
-# branches. Mirrors verifiers' setup.
-local_scheme = "no-local-version"
-git_describe_command = [
-    "git", "describe", "--tags", "--long",
-    "--match", "renderers-v[0-9]*.[0-9]*.[0-9]*",
-    "--exclude", "*dev*",
-]
-
-[tool.hatch.build.hooks.vcs]
-# Write the resolved version to a Python file so it can be inspected
-# at runtime via ``renderers.__version__`` without re-parsing the
-# wheel metadata.
-version-file = "renderers/_version.py"
+# CarbonTeq fork releases are ``<upstream base>.post<n>.dev<m>`` and are tagged
+# ``carbonteq-v<version>``; the checked-in file is the single source of truth.
+path = "renderers/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["renderers"]

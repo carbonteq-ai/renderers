@@ -55,6 +55,68 @@ wheels = [
 ]
 
 [[package]]
+name = "carbonteq-renderers"
+source = { editable = "." }
+dependencies = [
+    { name = "jinja2" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "openai" },
+    { name = "openai-harmony" },
+    { name = "prime-pydantic-config" },
+    { name = "tiktoken" },
+]
+
+[package.optional-dependencies]
+multimodal = [
+    { name = "pillow" },
+    { name = "transformers" },
+]
+transformers = [
+    { name = "transformers" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pillow" },
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+    { name = "torch" },
+    { name = "torchvision" },
+    { name = "transformers" },
+    { name = "ty" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "jinja2" },
+    { name = "numpy" },
+    { name = "openai", specifier = ">=1.108.1" },
+    { name = "openai-harmony", specifier = ">=0.0.4" },
+    { name = "pillow", marker = "extra == 'multimodal'", specifier = ">=12.2.0" },
+    { name = "prime-pydantic-config", specifier = ">=0.3.0.dev83" },
+    { name = "tiktoken" },
+    { name = "transformers", marker = "extra == 'multimodal'", specifier = ">=4.50.0" },
+    { name = "transformers", marker = "extra == 'transformers'", specifier = ">=4.50.0" },
+]
+provides-extras = ["multimodal", "transformers"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pillow", specifier = ">=12.2.0" },
+    { name = "pre-commit" },
+    { name = "pytest", specifier = ">=7.0.0" },
+    { name = "pytest-asyncio", specifier = ">=0.21.0" },
+    { name = "ruff" },
+    { name = "torch", specifier = ">=2.11.0" },
+    { name = "torchvision", specifier = ">=0.26.0" },
+    { name = "transformers", specifier = ">=4.50.0" },
+    { name = "ty", specifier = ">=0.0.1a29,<0.0.22" },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.4.22"
 source = { registry = "https://pypi.org/simple" }
@@ -1541,68 +1603,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/b5/db/1a23f767fa250844772a9464306d34e0fafe2c317303b88a1415096b6324/regex-2026.3.32-cp314-cp314t-win32.whl", hash = "sha256:e480d3dac06c89bc2e0fd87524cc38c546ac8b4a38177650745e64acbbcfdeba", size = 275714, upload-time = "2026-03-28T21:49:14.528Z" },
     { url = "https://files.pythonhosted.org/packages/c2/2b/616d31b125ca76079d74d6b1d84ec0860ffdb41c379151135d06e35a8633/regex-2026.3.32-cp314-cp314t-win_amd64.whl", hash = "sha256:67015a8162d413af9e3309d9a24e385816666fbf09e48e3ec43342c8536f7df6", size = 285722, upload-time = "2026-03-28T21:49:16.642Z" },
     { url = "https://files.pythonhosted.org/packages/7e/91/043d9a00d6123c5fa22a3dc96b10445ce434a8110e1d5e53efb01f243c8b/regex-2026.3.32-cp314-cp314t-win_arm64.whl", hash = "sha256:1a6ac1ed758902e664e0d95c1ee5991aa6fb355423f378ed184c6ec47a1ec0e9", size = 275700, upload-time = "2026-03-28T21:49:19.348Z" },
-]
-
-[[package]]
-name = "renderers"
-source = { editable = "." }
-dependencies = [
-    { name = "jinja2" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "openai" },
-    { name = "openai-harmony" },
-    { name = "prime-pydantic-config" },
-    { name = "tiktoken" },
-]
-
-[package.optional-dependencies]
-multimodal = [
-    { name = "pillow" },
-    { name = "transformers" },
-]
-transformers = [
-    { name = "transformers" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pillow" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "ruff" },
-    { name = "torch" },
-    { name = "torchvision" },
-    { name = "transformers" },
-    { name = "ty" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "jinja2" },
-    { name = "numpy" },
-    { name = "openai", specifier = ">=1.108.1" },
-    { name = "openai-harmony", specifier = ">=0.0.4" },
-    { name = "pillow", marker = "extra == 'multimodal'", specifier = ">=12.2.0" },
-    { name = "prime-pydantic-config", specifier = ">=0.3.0.dev83" },
-    { name = "tiktoken" },
-    { name = "transformers", marker = "extra == 'multimodal'", specifier = ">=4.50.0" },
-    { name = "transformers", marker = "extra == 'transformers'", specifier = ">=4.50.0" },
-]
-provides-extras = ["multimodal", "transformers"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pillow", specifier = ">=12.2.0" },
-    { name = "pre-commit" },
-    { name = "pytest", specifier = ">=7.0.0" },
-    { name = "pytest-asyncio", specifier = ">=0.21.0" },
-    { name = "ruff" },
-    { name = "torch", specifier = ">=2.11.0" },
-    { name = "torchvision", specifier = ">=0.26.0" },
-    { name = "transformers", specifier = ">=4.50.0" },
-    { name = "ty", specifier = ">=0.0.1a29,<0.0.22" },
 ]
 
 [[package]]
