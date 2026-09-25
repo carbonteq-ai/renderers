@@ -218,7 +218,10 @@ def parse_qwen3(
     )
     if boundary.is_open:
         return ParsedResponse(
-            content="", reasoning_content=boundary.text, reasoning_complete=False
+            content="",
+            reasoning_content=boundary.text,
+            reasoning_complete=False,
+            reasoning_tokens=boundary.token_count,
         )
 
     # Tool calls are parsed only after the initial reasoning region. An open
@@ -310,6 +313,7 @@ def parse_qwen3(
         content=text.strip(),
         reasoning_content=reasoning or None,
         tool_calls=tool_calls,
+        reasoning_tokens=boundary.token_count,
     )
 
 
@@ -352,7 +356,10 @@ def parse_qwen35(
     )
     if boundary.is_open:
         return ParsedResponse(
-            content="", reasoning_content=boundary.text, reasoning_complete=False
+            content="",
+            reasoning_content=boundary.text,
+            reasoning_complete=False,
+            reasoning_tokens=boundary.token_count,
         )
 
     # Thinking: find </think> by token ID
@@ -391,6 +398,7 @@ def parse_qwen35(
         content=content_text,
         reasoning_content=reasoning,
         tool_calls=tool_calls,
+        reasoning_tokens=boundary.token_count,
     )
 
 
@@ -517,7 +525,10 @@ def parse_glm(
     )
     if boundary.is_open:
         return ParsedResponse(
-            content="", reasoning_content=boundary.text, reasoning_complete=False
+            content="",
+            reasoning_content=boundary.text,
+            reasoning_complete=False,
+            reasoning_tokens=boundary.token_count,
         )
 
     reasoning = None
@@ -555,6 +566,7 @@ def parse_glm(
         content=content_text,
         reasoning_content=reasoning or None,
         tool_calls=tool_calls,
+        reasoning_tokens=boundary.token_count,
     )
 
 
@@ -700,7 +712,10 @@ def parse_hy3(
     )
     if boundary.is_open:
         return ParsedResponse(
-            content="", reasoning_content=boundary.text, reasoning_complete=False
+            content="",
+            reasoning_content=boundary.text,
+            reasoning_complete=False,
+            reasoning_tokens=boundary.token_count,
         )
 
     # ``token_span`` values are reported relative to this stop-stripped stream
@@ -750,6 +765,7 @@ def parse_hy3(
         content=content_text,
         reasoning_content=reasoning or None,
         tool_calls=tool_calls,
+        reasoning_tokens=boundary.token_count,
     )
 
 
@@ -908,7 +924,10 @@ def parse_laguna_xs2(
     )
     if boundary.is_open:
         return ParsedResponse(
-            content="", reasoning_content=boundary.text, reasoning_complete=False
+            content="",
+            reasoning_content=boundary.text,
+            reasoning_complete=False,
+            reasoning_tokens=boundary.token_count,
         )
 
     def _segment(segment_ids: list[int]) -> str:
@@ -942,6 +961,7 @@ def parse_laguna_xs2(
         content=content_text,
         reasoning_content=reasoning or None,
         tool_calls=tool_calls,
+        reasoning_tokens=boundary.token_count,
     )
 
 
@@ -1066,7 +1086,10 @@ def parse_deepseek_v3(
     )
     if boundary.is_open:
         return ParsedResponse(
-            content="", reasoning_content=boundary.text, reasoning_complete=False
+            content="",
+            reasoning_content=boundary.text,
+            reasoning_complete=False,
+            reasoning_tokens=boundary.token_count,
         )
 
     # Reasoning first: skip past </think> before looking for the tool-call
@@ -1108,6 +1131,7 @@ def parse_deepseek_v3(
         content=text.strip(),
         reasoning_content=reasoning or None,
         tool_calls=tool_calls,
+        reasoning_tokens=boundary.token_count,
     )
 
 
@@ -1256,7 +1280,10 @@ def parse_deepseek_v4(
     )
     if boundary.is_open:
         return ParsedResponse(
-            content="", reasoning_content=boundary.text, reasoning_complete=False
+            content="",
+            reasoning_content=boundary.text,
+            reasoning_complete=False,
+            reasoning_tokens=boundary.token_count,
         )
 
     reasoning: str | None = None
@@ -1286,6 +1313,7 @@ def parse_deepseek_v4(
             content=decoded,
             reasoning_content=reasoning or None,
             tool_calls=[],
+            reasoning_tokens=boundary.token_count,
         )
 
     content = "" if boundary.closed_by_tool else decoded[:section_pos]
@@ -1305,6 +1333,11 @@ def parse_deepseek_v4(
         content=content,
         reasoning_content=reasoning or None,
         tool_calls=tool_calls,
+        # The DSML section opener is text around the atomic marker the scan
+        # anchors on, so a thought ended by it stops at the section start.
+        reasoning_tokens=section_token_offset
+        if boundary.closed_by_tool
+        else boundary.token_count,
     )
 
 
@@ -1463,7 +1496,10 @@ def parse_minimax(
     )
     if boundary.is_open:
         return ParsedResponse(
-            content="", reasoning_content=boundary.text, reasoning_complete=False
+            content="",
+            reasoning_content=boundary.text,
+            reasoning_complete=False,
+            reasoning_tokens=boundary.token_count,
         )
     param_index = _build_param_type_index(tools)
 
@@ -1562,6 +1598,7 @@ def parse_minimax(
         content=content_text,
         reasoning_content=reasoning or None,
         tool_calls=tool_calls,
+        reasoning_tokens=boundary.token_count,
     )
 
 
@@ -1645,7 +1682,10 @@ def parse_kimi_k2(
     )
     if boundary.is_open:
         return ParsedResponse(
-            content="", reasoning_content=boundary.text, reasoning_complete=False
+            content="",
+            reasoning_content=boundary.text,
+            reasoning_complete=False,
+            reasoning_tokens=boundary.token_count,
         )
 
     if boundary.closed_by_tool:
@@ -1680,6 +1720,7 @@ def parse_kimi_k2(
         content=text.strip(),
         reasoning_content=reasoning,
         tool_calls=tool_calls,
+        reasoning_tokens=boundary.token_count,
     )
 
 
@@ -1984,13 +2025,14 @@ def parse_llama_3(
                         status=ToolCallParseStatus.OK,
                     )
                 ],
+                reasoning_tokens=0,
             )
 
     # Not a tool-call shape (plain reply, or a ``{...}`` body that didn't
     # parse / lacked a name). Llama-3 has no delimiter to anchor a
     # "malformed attempt" against, so it falls through to content rather
     # than producing a non-OK ParsedToolCall.
-    return ParsedResponse(content=text, reasoning_content=None)
+    return ParsedResponse(content=text, reasoning_content=None, reasoning_tokens=0)
 
 
 def parse_inkling(

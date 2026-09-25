@@ -198,7 +198,10 @@ class DefaultRenderer:
         )
         if boundary.is_open:
             return ParsedResponse(
-                content="", reasoning_content=boundary.text, reasoning_complete=False
+                content="",
+                reasoning_content=boundary.text,
+                reasoning_complete=False,
+                reasoning_tokens=boundary.token_count,
             )
         reasoning_end = (
             _reasoning_end_token_index(self._tokenizer, ids)
@@ -244,6 +247,7 @@ class DefaultRenderer:
             if isinstance(self._reasoning_parser, ThinkTextReasoningParser)
             or reasoning_content is not None
             else None,
+            reasoning_tokens=boundary.token_count,
         )
 
     def get_stop_token_ids(self) -> list[int]:

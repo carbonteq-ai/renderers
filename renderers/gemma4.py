@@ -1154,6 +1154,7 @@ class Gemma4Renderer:
                 content="",
                 reasoning_content=reasoning,
                 reasoning_complete=False,
+                reasoning_tokens=base_offset + len(ids),
             )
 
         def thought_end(start: int) -> int:
@@ -1180,6 +1181,7 @@ class Gemma4Renderer:
                     reasoning_content=reasoning,
                     tool_calls=[],
                     reasoning_complete=False,
+                    reasoning_tokens=base_offset + len(ids),
                 )
             reasoning = self._decode(ids[thought_start:channel_end]).strip()
             cursor = channel_end + int(ids[channel_end] == self._channel_end)
@@ -1198,8 +1200,13 @@ class Gemma4Renderer:
                     content="",
                     reasoning_content=self._decode(ids).strip(),
                     reasoning_complete=False,
+                    reasoning_tokens=base_offset + len(ids),
                 )
 
+        # The thought channel, its markers and the generated turn header before
+        # it are reasoning; content starts here (a closing tool opener belongs
+        # to the content).
+        reasoning_end = base_offset + cursor if reasoning is not None else 0
         tool_calls: list[ParsedToolCall] = []
         while cursor < len(ids):
             try:
@@ -1234,6 +1241,7 @@ class Gemma4Renderer:
             content=self._decode(content_ids).strip(),
             reasoning_content=reasoning,
             tool_calls=tool_calls,
+            reasoning_tokens=reasoning_end,
         )
 
     def get_stop_token_ids(self) -> list[int]:

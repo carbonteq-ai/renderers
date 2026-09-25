@@ -9,15 +9,41 @@ class ReasoningBoundary:
 
     ``closed_by_tool`` marks a region ended by a tool-call opener rather than
     the format's close marker; the tool call then starts the content.
+
+    ``token_count`` is how many of the scanned completion tokens belong to
+    reasoning: generated open/close markers and any assistant header before
+    the region are included, a tool-call opener that ends the region is not,
+    and stop tokens never are. It is 0 when no region was opened and covers
+    every scanned token while a region is still open. None means the scan
+    could not place the region on token boundaries.
     """
 
     is_open: bool
     text: str | None
     closed_by_tool: bool = False
+    token_count: int | None = None
 
 
 def _decode(tokenizer, ids: list[int]) -> str:
     return tokenizer.decode(ids, skip_special_tokens=False) if ids else ""
+
+
+def _tokens_through_char(tokenizer, ids: list[int], char_end: int) -> int:
+    """Smallest token prefix whose decode covers ``char_end`` characters.
+
+    Relies on ``decode(ids[:k])`` being prefix-stable in ``k``, which holds for
+    the byte-level BPE and SentencePiece tokenizers renderers support.
+    """
+    if char_end <= 0:
+        return 0
+    lo, hi = 1, len(ids)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if len(_decode(tokenizer, ids[:mid])) >= char_end:
+            hi = mid
+        else:
+            lo = mid + 1
+    return lo
 
 
 def _single_marker_id(tokenizer, marker: str) -> int | None:
@@ -125,6 +151,9 @@ def scan_reasoning(
         if initial_only
         else ids[:end]
     )
+    # Tokens dropped from the front (a generated assistant header) sit before
+    # the region, so they count toward reasoning once a region exists.
+    header = end - len(ids)
     if open_id is None:
         open_id = _single_marker_id(tokenizer, "<think>")
     if close_id is None:
@@ -135,7 +164,7 @@ def scan_reasoning(
         if open_id is not None and close_id is not None:
             explicit = bool(ids) and ids[0] == open_id
             if not prefilled and not explicit:
-                return ReasoningBoundary(False, None)
+                return ReasoningBoundary(False, None, token_count=0)
             start = int(explicit)
             close = next((i for i in range(start, len(ids)) if ids[i] == close_id), -1)
             by_tool = False
@@ -144,25 +173,40 @@ def scan_reasoning(
                     (i for i in range(start, len(ids)) if ids[i] == tool_start_id), -1
                 )
                 by_tool = close != -1
+            if close == -1:
+                count = len(ids)
+            else:
+                count = close if by_tool else close + 1
             return ReasoningBoundary(
                 close == -1,
                 _decode(tokenizer, ids[start : close if close != -1 else len(ids)]),
                 by_tool,
+                token_count=header + count,
             )
         text = _decode(tokenizer, ids)
         explicit = text.startswith(open_marker)
         if not prefilled and not explicit:
-            return ReasoningBoundary(False, None)
+            return ReasoningBoundary(False, None, token_count=0)
         start = len(open_marker) if explicit else 0
         close = text.find(close_marker, start)
         by_tool = False
+        tool = -1
         if close == -1 and tool_start_closes_reasoning:
             tool = next((i for i, t in enumerate(ids) if t == tool_start_id), -1)
             tool_pos = len(_decode(tokenizer, ids[:tool])) if tool != -1 else -1
             if tool_pos >= start:
                 close, by_tool = tool_pos, True
+        if close == -1:
+            count = len(ids)
+        elif by_tool:
+            count = tool
+        else:
+            count = _tokens_through_char(tokenizer, ids, close + len(close_marker))
         return ReasoningBoundary(
-            close == -1, text[start : close if close != -1 else len(text)], by_tool
+            close == -1,
+            text[start : close if close != -1 else len(text)],
+            by_tool,
+            token_count=header + count,
         )
 
     events: list[tuple[int, int, bool | None]]
@@ -199,8 +243,11 @@ def scan_reasoning(
 
     active = prefilled
     start = 0
+    span_start = 0
     by_tool = False
     closed_regions: list[tuple[int, int]] = []
+    # Regions with their generated markers, in the same units as ``events``.
+    spans: list[tuple[int, int]] = []
     events.sort()
     for n, (pos, after, opening) in enumerate(events):
         if opening is None:
@@ -212,6 +259,7 @@ def scan_reasoning(
                 o is not False for _, _, o in events[n + 1 :]
             ):
                 closed_regions.append((start, pos))
+                spans.append((span_start, pos))
                 active = False
                 by_tool = True
             continue
@@ -219,15 +267,27 @@ def scan_reasoning(
             if not active:
                 active = True
                 start = after
+                span_start = pos
             elif pos == 0:
                 start = after
         elif active:
             closed_regions.append((start, pos))
+            spans.append((span_start, after))
             active = False
     if active:
         closed_regions.append((start, end))
+        spans.append((span_start, end))
+    if open_id is None or close_id is None:
+        token_count = sum(
+            _tokens_through_char(tokenizer, ids, b)
+            - _tokens_through_char(tokenizer, ids, a)
+            for a, b in spans
+        )
+    else:
+        token_count = sum(b - a for a, b in spans)
     return ReasoningBoundary(
         is_open=active,
         text="".join(decode_region(a, b) for a, b in closed_regions),
         closed_by_tool=by_tool,
+        token_count=token_count,
     )

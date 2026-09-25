@@ -639,6 +639,18 @@ class ParsedResponse:
     engine finish reason, tool-call validity, or whether final text is useful.
     None means the parser cannot determine the state for its reasoning format.
     """
+    reasoning_tokens: int | None = None
+    """How many completion tokens belong to reasoning.
+
+    Counts generated reasoning text plus the format's generated open/close
+    markers (and any assistant header generated before them); a tool-call
+    opener that ends reasoning belongs to the content. Stop tokens and
+    prompt-prefilled markers never count. 0 means the completion has no
+    reasoning; while ``reasoning_complete`` is False it covers every
+    non-stop completion token. None means this parser cannot place reasoning
+    on token boundaries. ``completion_tokens - reasoning_tokens`` is the
+    answer (content and tool calls) plus stop tokens.
+    """
 
 
 @dataclass

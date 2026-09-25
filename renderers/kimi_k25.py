@@ -468,7 +468,10 @@ def _parse_kimi_k2_response(
     )
     if boundary.is_open:
         return ParsedResponse(
-            content="", reasoning_content=boundary.text, reasoning_complete=False
+            content="",
+            reasoning_content=boundary.text,
+            reasoning_complete=False,
+            reasoning_tokens=boundary.token_count,
         )
 
     # Reasoning first: a tool-call section the model drafts *inside* its
@@ -568,6 +571,7 @@ def _parse_kimi_k2_response(
         content=text.strip(),
         reasoning_content=reasoning.strip() if reasoning else None,
         tool_calls=tool_calls,
+        reasoning_tokens=boundary.token_count,
     )
 
 
