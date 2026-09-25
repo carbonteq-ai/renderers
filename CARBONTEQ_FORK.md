@@ -10,7 +10,7 @@ in the Posttrain repository (`carbonteq-ai/rl`); the implementation plan is
 
 ## Status
 
-Candidate, unpublished. No `carbonteq-v*` release exists yet.
+Candidate, published to GitHub. Release `carbonteq-v0.1.12.post1.dev1` (pre-release) is the first fork release; see Releases.
 
 ## Distribution and remotes
 
@@ -178,4 +178,12 @@ Record the new base commit in this file and in Posttrain's
 
 ## Releases
 
-None yet.
+- `0.1.12.post1.dev1`: tag `carbonteq-v0.1.12.post1.dev1` at fork commit
+  `6aba28a8c9a597475addc2c123dd18b28a462766` (branch
+  `carbonteq/thinking-token-accounting`), GitHub pre-release with retained
+  assets. Wheel `carbonteq_renderers-0.1.12.post1.dev1-py3-none-any.whl`
+  SHA-256 `2e3231784729b9177bfc25eb06e3a6a958f9ba420ff8e241c010266cc9422d0b`;
+  sdist `carbonteq_renderers-0.1.12.post1.dev1.tar.gz` SHA-256
+  `bf529fc910f66494770a96e0ee5ec986344ed5f8b48258b50a55b82baa876fa3`. Built
+  with `uv build` from `git archive` of the tagged commit; `twine check`
+  passed and a clean install imports and builds the LFM2.5 renderer.
