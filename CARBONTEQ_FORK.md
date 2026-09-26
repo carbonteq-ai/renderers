@@ -146,6 +146,19 @@ Behavior that must survive an upstream merge:
   reasoning and never parsed: 28 of 520 LFM2.5-2.6B AutomationBench training
   episodes (Posttrain run `lfm26-vortex-v5-150-dspark-opt-20260926-r1`, updates
   41-56) ended on such a call.
+- `LFM2ToolParser` applies the same repairs as the CarbonTeq vLLM fork's `lfm2`
+  tool parser when a call is not valid Python: raw control characters and NUL
+  inside strings are escaped, zero-padded integers (`month=07`) are
+  normalized, a string broken by an unescaped quote of its own kind
+  (`subject='Let's go'`) is closed at the only closer that parses, and
+  keyword-named parameters (`from=`) are renamed and restored. The first
+  rewrite that parses wins; ambiguous or unrecoverable text is still
+  `MALFORMED_STRUCTURE`. `renderers/pythonic_repair.py` is an unchanged copy of
+  those vLLM helpers (`vllm/tool_parsers/utils.py`) and must stay identical to
+  it. Without them training dropped calls that serving accepts: LFM2.5-1.2B
+  scored 0 in training on `simple.gmail_onboarding_welcome` (the call was
+  dropped) and 1.0 on every evaluation attempt (Posttrain runs
+  `lfm12-sampo-8gb-20260926-r6` and `lfm12-screen-8k-20260926-r2`).
 - Like `DefaultRenderer`, these renderers reject an explicit
   `thinking_retention`. Only LFM bridges, and only tool results; other
   extensions re-render through the chat template.
@@ -155,7 +168,8 @@ Regression tests:
 - `tests/test_catalog_model_renderers.py`: every catalog model's mapping,
   prompt-opened thought then tool call, a tool call ending an unclosed thought,
   cut-off thought, late markers,
-  self-contained thought, the K2 efforts, and the LFM bridge.
+  self-contained thought, the K2 efforts, the LFM bridge, the LFM tool calls
+  vLLM repairs, and an unrecoverable call that stays malformed.
 - The catalog models added to `tests/parity.py` `MODEL_CATALOG`, which runs the
   upstream parity and reasoning suites.
 - In `tests/test_reasoning_boundaries.py`, `_TEMPLATE_RENDERED` exempts these

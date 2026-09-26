@@ -12,6 +12,23 @@ import re
 from typing import Any
 
 from renderers.base import ParsedToolCall, ToolCallParseStatus
+from renderers.pythonic_repair import repair_candidates, restore_reserved_kwarg_names
+
+
+def _parse_pythonic_calls(raw: str) -> tuple[ast.expr, str] | None:
+    """Parse a pythonic call list, applying vLLM's repairs if it is invalid.
+
+    Serving parses the same text with these repairs, so training must accept
+    the same calls or an episode that evaluation scores is lost in training.
+    Returns the expression and the text it was parsed from.
+    """
+
+    for text in (raw, *repair_candidates(raw)):
+        try:
+            return ast.parse(text, mode="eval").body, text
+        except (SyntaxError, ValueError):
+            continue
+    return None
 
 
 class LFM2ToolParser:
@@ -52,9 +69,8 @@ class LFM2ToolParser:
             token_ids[start + 1 : end], skip_special_tokens=False
         ).strip()
         span = (start, end + 1)
-        try:
-            expression = ast.parse(raw, mode="eval").body
-        except SyntaxError:
+        parsed = _parse_pythonic_calls(raw)
+        if parsed is None:
             return token_ids[:start], [
                 ParsedToolCall(
                     raw=raw,
@@ -62,6 +78,7 @@ class LFM2ToolParser:
                     status=ToolCallParseStatus.MALFORMED_STRUCTURE,
                 )
             ]
+        expression, source = parsed
         if not isinstance(expression, ast.List) or not expression.elts:
             return token_ids[:start], [
                 ParsedToolCall(
@@ -80,7 +97,7 @@ class LFM2ToolParser:
             ):
                 calls.append(
                     ParsedToolCall(
-                        raw=ast.get_source_segment(raw, item) or raw,
+                        raw=ast.get_source_segment(source, item) or raw,
                         token_span=span,
                         status=ToolCallParseStatus.MALFORMED_STRUCTURE,
                     )
@@ -90,7 +107,7 @@ class LFM2ToolParser:
             if len(keys) != len(set(keys)):
                 calls.append(
                     ParsedToolCall(
-                        raw=ast.get_source_segment(raw, item) or raw,
+                        raw=ast.get_source_segment(source, item) or raw,
                         name=item.func.id,
                         token_span=span,
                         status=ToolCallParseStatus.MALFORMED_STRUCTURE,
@@ -98,14 +115,16 @@ class LFM2ToolParser:
                 )
                 continue
             try:
-                arguments = {
-                    str(keyword.arg): ast.literal_eval(keyword.value)
-                    for keyword in item.keywords
-                }
+                arguments = restore_reserved_kwarg_names(
+                    {
+                        str(keyword.arg): ast.literal_eval(keyword.value)
+                        for keyword in item.keywords
+                    }
+                )
             except (TypeError, ValueError):
                 calls.append(
                     ParsedToolCall(
-                        raw=ast.get_source_segment(raw, item) or raw,
+                        raw=ast.get_source_segment(source, item) or raw,
                         name=item.func.id,
                         token_span=span,
                         status=ToolCallParseStatus.INVALID_JSON,
@@ -114,7 +133,7 @@ class LFM2ToolParser:
                 continue
             calls.append(
                 ParsedToolCall(
-                    raw=ast.get_source_segment(raw, item) or raw,
+                    raw=ast.get_source_segment(source, item) or raw,
                     name=item.func.id,
                     arguments=arguments,
                     token_span=span,

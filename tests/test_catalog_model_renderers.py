@@ -248,3 +248,73 @@ def test_lfm_tool_results_extend_the_sampled_history(model):
     # A new user query re-renders instead of bridging.
     user = [{"role": "user", "content": "next"}]
     assert renderer.bridge_to_next_turn(prompt, completion, user) is None
+
+
+# Calls LFM2.5-1.2B sampled in AutomationBench training that vLLM's lfm2 parser
+# repairs when serving; training must accept the same calls.
+_LFM_REPAIRED_CALLS = [
+    (
+        "[gmail_send_email(to='f@x.example.com', subject='Welcome! Let's Get Started', body=\"Hi\")]",
+        "gmail_send_email",
+        {
+            "to": "f@x.example.com",
+            "subject": "Welcome! Let's Get Started",
+            "body": "Hi",
+        },
+    ),
+    (
+        "[hubspot_update_contact(contact_id='hs_004', additional_properties_json='{'hs_tag': 'enterprise'}')]",
+        "hubspot_update_contact",
+        {
+            "contact_id": "hs_004",
+            "additional_properties_json": "{'hs_tag': 'enterprise'}",
+        },
+    ),
+    (
+        "[gcal_create_event(month=07, day=3)]",
+        "gcal_create_event",
+        {"month": 7, "day": 3},
+    ),
+    (
+        '[hubspot_update_contact(contact_id="hs_004", additional_properties_json="{\\"hs_tag\\": "enterprise"}")]',
+        "hubspot_update_contact",
+        {
+            "contact_id": "hs_004",
+            "additional_properties_json": '{"hs_tag": "enterprise"}',
+        },
+    ),
+    ("[memory_get(from=1)]", "memory_get", {"from": 1}),
+    ("[note(text='line one\nline two')]", "note", {"text": "line one\nline two"}),
+]
+
+
+@pytest.mark.parametrize(("call_text", "name", "arguments"), _LFM_REPAIRED_CALLS)
+def test_lfm_accepts_the_tool_calls_vllm_repairs(call_text, name, arguments):
+    model = "LiquidAI/LFM2.5-1.2B-Thinking"
+    tok, renderer, prompt = _load(model)
+    sampled = _ids(
+        tok,
+        _thought(model, "plan")
+        + f"</think><|tool_call_start|>{call_text}<|tool_call_end|><|im_end|>",
+    )
+    parsed = renderer.parse_response(sampled, prompt_ids=prompt, tools=_TOOLS)
+    [call] = parsed.tool_calls
+    assert (call.name, call.arguments, call.status) == (
+        name,
+        arguments,
+        ToolCallParseStatus.OK,
+    )
+
+
+def test_lfm_still_rejects_an_unrecoverable_tool_call():
+    model = "LiquidAI/LFM2.5-1.2B-Thinking"
+    tok, renderer, prompt = _load(model)
+    call_text = "[lookup(q='x y)]"
+    sampled = _ids(
+        tok,
+        _thought(model, "plan")
+        + f"</think><|tool_call_start|>{call_text}<|tool_call_end|><|im_end|>",
+    )
+    parsed = renderer.parse_response(sampled, prompt_ids=prompt, tools=_TOOLS)
+    [call] = parsed.tool_calls
+    assert call.status == ToolCallParseStatus.MALFORMED_STRUCTURE
