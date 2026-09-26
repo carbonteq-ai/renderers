@@ -140,6 +140,25 @@ def test_prompt_opened_thought_then_tool_call(model):
 
 
 @pytest.mark.parametrize("model", sorted(_CASES))
+def test_tool_call_opener_ends_an_unclosed_thought(model):
+    """A call sampled before the close marker is a call, not reasoning (vLLM parity)."""
+    _, _, call_text, turn_end = _CASES[model]
+    tok, renderer, prompt = _load(model)
+    sampled = _ids(tok, _thought(model, "plan the lookup") + call_text + turn_end)
+    parsed = renderer.parse_response(sampled, prompt_ids=prompt, tools=_TOOLS)
+    assert renderer._tool_start_id is not None
+    assert parsed.reasoning_content.strip() == "plan the lookup"
+    assert parsed.content.strip() == ""
+    [call] = parsed.tool_calls
+    assert (call.name, call.arguments, call.status) == (
+        "lookup",
+        {"q": "x y", "limit": 3},
+        ToolCallParseStatus.OK,
+    )
+    assert call.token_span[0] >= parsed.reasoning_tokens
+
+
+@pytest.mark.parametrize("model", sorted(_CASES))
 def test_thought_cut_off_by_the_length_limit(model):
     tok, renderer, prompt = _load(model)
     sampled = _ids(tok, _thought(model, "still planning the lookup and then"))

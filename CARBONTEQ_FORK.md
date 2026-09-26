@@ -138,6 +138,14 @@ Behavior that must survive an upstream merge:
     processor path is not qualified.
 - `renderers/client.py` `generate()` returns `reasoning_tokens` next to
   `reasoning_content`.
+- A reasoning region left without its close marker ends at the family's
+  single-token tool-call opener (`tool_call_start_marker`: LFM2.5
+  `<|tool_call_start|>`, K2 `<ifm|tool_calls>`, Nanbeige and Spark
+  `<tool_call>`), as vLLM's parsers and the upstream renderers do; an explicit
+  close still wins. Without it a call sampled before `</think>` was swallowed as
+  reasoning and never parsed: 28 of 520 LFM2.5-2.6B AutomationBench training
+  episodes (Posttrain run `lfm26-vortex-v5-150-dspark-opt-20260926-r1`, updates
+  41-56) ended on such a call.
 - Like `DefaultRenderer`, these renderers reject an explicit
   `thinking_retention`. Only LFM bridges, and only tool results; other
   extensions re-render through the chat template.
@@ -145,7 +153,8 @@ Behavior that must survive an upstream merge:
 Regression tests:
 
 - `tests/test_catalog_model_renderers.py`: every catalog model's mapping,
-  prompt-opened thought then tool call, cut-off thought, late markers,
+  prompt-opened thought then tool call, a tool call ending an unclosed thought,
+  cut-off thought, late markers,
   self-contained thought, the K2 efforts, and the LFM bridge.
 - The catalog models added to `tests/parity.py` `MODEL_CATALOG`, which runs the
   upstream parity and reasoning suites.

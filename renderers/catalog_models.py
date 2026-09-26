@@ -56,6 +56,14 @@ class MarkedReasoningRenderer(DefaultRenderer):
     default_tool_parser: ClassVar[str | None] = None
     """Tool parser used when the config leaves ``tool_parser`` unset."""
 
+    tool_call_start_marker: ClassVar[str | None] = None
+    """Tool-call opener that ends a reasoning region left without its close marker.
+
+    vLLM's parsers treat an atomic tool-call opener as an implicit reasoning end;
+    without it, a call sampled before ``</think>`` is swallowed as reasoning. Used
+    only when the marker is a single token; an explicit close marker still wins.
+    """
+
     def __init__(
         self,
         tokenizer: ChatTemplateTokenizer,
@@ -82,6 +90,11 @@ class MarkedReasoningRenderer(DefaultRenderer):
             if token_id not in stop_ids:
                 stop_ids.append(token_id)
         self._stop_ids = stop_ids
+        self._tool_start_id = (
+            _single_marker_id(tokenizer, self.tool_call_start_marker)
+            if self.tool_call_start_marker is not None
+            else None
+        )
 
     def reasoning_markers(self) -> tuple[str, str]:
         """Open and close markers of this renderer's reasoning channel."""
@@ -137,6 +150,8 @@ class MarkedReasoningRenderer(DefaultRenderer):
             close_id=self._close_id,
             open_marker=self._open_marker,
             close_marker=self._close_marker,
+            tool_start_id=self._tool_start_id,
+            tool_start_closes_reasoning=self._tool_start_id is not None,
         )
         if boundary.is_open:
             return ParsedResponse(
@@ -166,6 +181,7 @@ class LFM25Renderer(MarkedReasoningRenderer):
     assistant_prefix = "<|im_start|>assistant\n"
     turn_end_tokens = ("<|im_end|>",)
     default_tool_parser = "lfm2"
+    tool_call_start_marker = "<|tool_call_start|>"
 
     def bridge_to_next_turn(
         self,
@@ -198,6 +214,7 @@ class K2HorizonRenderer(MarkedReasoningRenderer):
     assistant_prefix = "<|ifm|im_start|>assistant\n"
     turn_end_tokens = ("<|ifm|im_end|>",)
     default_tool_parser = "k2-ifm"
+    tool_call_start_marker = "<ifm|tool_calls>"
 
     _CHANNELS: ClassVar[dict[str, str]] = {
         "high": "think",
@@ -222,6 +239,7 @@ class Nanbeige42Renderer(MarkedReasoningRenderer):
     assistant_prefix = "<|im_start|>assistant\n"
     turn_end_tokens = ("<|im_end|>",)
     default_tool_parser = "qwen3.5"
+    tool_call_start_marker = "<tool_call>"
 
     def extract_tool_calls(self, answer_ids, *, offset, tools):
         # Schema-aware like Qwen35Renderer: string parameters stay verbatim.
@@ -245,6 +263,7 @@ class Spark25Renderer(MarkedReasoningRenderer):
 
     assistant_prefix = "<|Bot|>"
     default_tool_parser = "glm"
+    tool_call_start_marker = "<tool_call>"
 
     def extract_tool_calls(self, answer_ids, *, offset, tools):
         # Schema-aware like the GLM renderers: string parameters stay verbatim.
