@@ -10,7 +10,7 @@ in the Posttrain repository (`carbonteq-ai/rl`); the implementation plan is
 
 ## Status
 
-Candidate, published to GitHub. Release `carbonteq-v0.1.12.post1.dev1` (pre-release) is the first fork release; see Releases.
+Candidate, published to GitHub. The latest release is `carbonteq-v0.1.12.post1.dev2` (pre-release); see Releases.
 
 ## Distribution and remotes
 
@@ -210,3 +210,14 @@ Record the new base commit in this file and in Posttrain's
   `bf529fc910f66494770a96e0ee5ec986344ed5f8b48258b50a55b82baa876fa3`. Built
   with `uv build` from `git archive` of the tagged commit; `twine check`
   passed and a clean install imports and builds the LFM2.5 renderer.
+- `0.1.12.post1.dev2`: tag `carbonteq-v0.1.12.post1.dev2` at fork commit
+  `6f71261` (branch `carbonteq/tool-start-closes-reasoning`), GitHub
+  pre-release with retained assets. Adds the tool-call opener ending an
+  unclosed thought and the LFM2 pythonic tool-call repairs. Wheel
+  `carbonteq_renderers-0.1.12.post1.dev2-py3-none-any.whl` SHA-256
+  `fdc65e9ed1a8a2f877c127a3456834d5ded996f32a4c70fe22bebe615073a87e`; sdist
+  `carbonteq_renderers-0.1.12.post1.dev2.tar.gz` SHA-256
+  `2c83d94bd1fd81f5fdfe95cd8390ac1d5057355bc278bf14e642ab3f8b2c26bd`. Built
+  with `uv build` from `git archive` of the tagged commit; `twine check`
+  passed and a clean install parses a repaired LFM2.5 call. Published to
+  `pypi.lan/carbonteq/dev` by Posttrain run 36259417685.
