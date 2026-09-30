@@ -183,6 +183,80 @@ class LFM25Renderer(MarkedReasoningRenderer):
     default_tool_parser = "lfm2"
     tool_call_start_marker = "<|tool_call_start|>"
 
+    def render(
+        self,
+        messages: list[Message],
+        *,
+        tools: list[ToolSpec] | None = None,
+        add_generation_prompt: bool = False,
+    ) -> RenderedTokens:
+        rendered = super().render(
+            messages, tools=tools, add_generation_prompt=add_generation_prompt
+        )
+        sampled = [False] * len(rendered.token_ids)
+        stop_ids = set(self.get_stop_token_ids())
+        for index, message in enumerate(messages):
+            if message.get("role") != "assistant":
+                continue
+            # The inference prompt already supplies the assistant opener. Its
+            # exact token boundary is safer than searching decoded role text.
+            complete = self._apply(messages[: index + 1], tools=tools)
+            if index:
+                prefix = self._apply(
+                    messages[:index], tools=tools, add_generation_prompt=True
+                )
+            else:
+                # Transformers rejects an empty conversation, while an
+                # assistant-only supervised sample is valid. This family owns
+                # the exact atomic header and optional initial BOS.
+                prefix = list(
+                    self._tokenizer.encode(
+                        self.assistant_prefix, add_special_tokens=False
+                    )
+                )
+                probe = self._apply(
+                    [{"role": "user", "content": ""}],
+                    tools=tools,
+                    add_generation_prompt=True,
+                )
+                if probe[-len(prefix) - 1 :] == [*prefix, self._open_id]:
+                    prefix.append(self._open_id)
+                bos_id = getattr(self._tokenizer, "bos_token_id", None)
+                if complete and complete[0] == bos_id:
+                    prefix.insert(0, bos_id)
+            # Some LFM templates prefill <think> only on generation prompts,
+            # while a curated plain-answer SFT message has no reasoning block.
+            # Preserve those full-conversation tokens and mask the actual
+            # header; when the block exists, the prefilled opener stays masked.
+            if (
+                prefix
+                and prefix[-1] == self._open_id
+                and complete[: len(prefix)] != prefix
+                and complete[: len(prefix) - 1] == prefix[:-1]
+            ):
+                prefix = prefix[:-1]
+            if (
+                complete[: len(prefix)] != prefix
+                or rendered.token_ids[: len(complete)] != complete
+            ):
+                raise ValueError(
+                    "LFM assistant rendering does not preserve its generation-prompt token prefix"
+                )
+            start, end = len(prefix), len(complete)
+            # Include the sampled turn stop; leave the template's trailing
+            # newline and the next injected role header unscored.
+            last_stop = next(
+                (k for k in range(end - 1, start - 1, -1) if complete[k] in stop_ids),
+                None,
+            )
+            if last_stop is None:
+                raise ValueError(
+                    "LFM assistant rendering has no sampled turn-stop token"
+                )
+            sampled[start : last_stop + 1] = [True] * (last_stop + 1 - start)
+        rendered.sampled_mask = sampled
+        return rendered
+
     def bridge_to_next_turn(
         self,
         previous_prompt_ids: list[int],

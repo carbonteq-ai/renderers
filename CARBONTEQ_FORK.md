@@ -12,6 +12,32 @@ in the Posttrain repository (`carbonteq-ai/rl`); the implementation plan is
 
 Candidate, published to GitHub. The latest release is `carbonteq-v0.1.12.post1.dev2` (pre-release); see Releases.
 
+Source-only sampled-mask correction, branch `codex/lfm-sampled-mask`, based on
+ledger commit `d1458bf1a665278b05ac6e9ed0611abc78f953a8` (published dev2 behavior).
+`LFM25Renderer.render` now populates sampled assistant spans from the exact
+inference-prefilled header boundary through the emitted turn stop. Injected
+assistant headers, BOS, separators, appended generation prompts, and
+system/user/tool observations remain unscored. LFM2.5-2.6B prefills `<think>`
+in the generation prompt; LFM2.5-1.2B-Thinking emits it itself. The mask
+preserves that difference, supports plain curated SFT answers and assistant-only
+samples, and rejects inconsistent template prefix boundaries explicitly.
+It preserves serialized token IDs and parsing/bridge behavior. Other families
+are unchanged. The existing incremental template renderer gets additional
+prefix checks; preprocessing overhead on long histories remains to be measured.
+
+`tests/test_lfm_sampled_mask.py` exercises immutable cached 1.2B/2.6B tokenizers
+with plain, reasoning, empty, literal-role-marker, selective multi-turn,
+assistant-only, and invalid-prefix cases. All 20 fail on the isolated published
+dev2 wheel and pass on the candidate. The new cases plus existing LFM sampled
+mask, build-helper, parser and bridge tests pass 59 cases; 320 unrelated cases
+are deselected. Posttrain's renderer/SFT-validation integration passes 15
+cases, including three new header/tool masking regressions. On a real 1.2B
+three-step SFT probe, targets shrink from seven to three tokens and independent
+loss/parameter gradients match; three DPO updates retain prior behavior.
+This is target/numerical correctness evidence, not task convergence or native
+Verifiers trajectory qualification. No wheel release or production pin change
+is implied; version remains dev2 until a separate immutable release is built.
+
 ## Distribution and remotes
 
 CarbonTeq publishes the fork as `carbonteq-renderers`. The import package stays
