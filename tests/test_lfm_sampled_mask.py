@@ -162,3 +162,29 @@ def test_assistant_only_sample_excludes_bos_and_injected_header(lfm_renderer, co
     if "2.6B" in tokenizer.name_or_path and content.startswith("<think>"):
         expected = expected.removeprefix("<think>")
     assert tokenizer.decode(selected) == expected
+
+
+def test_reasoning_history_turn_is_masked_in_its_rewritten_form(lfm_renderer):
+    # The template drops reasoning from assistant turns that precede a later
+    # user message; the mask must follow the rendered history, not the turn
+    # rendered as if it were last.
+    tokenizer, renderer = lfm_renderer
+    messages = [
+        {"role": "user", "content": "What is 2+2?"},
+        {"role": "assistant", "reasoning_content": "Simple arithmetic", "content": "4"},
+        {"role": "user", "content": "And 3+3?"},
+        {"role": "assistant", "reasoning_content": "Also simple", "content": "6"},
+    ]
+    rendered = renderer.render(messages)
+    targets = tokenizer.decode(
+        [t for t, m in zip(rendered.token_ids, rendered.sampled_mask) if m]
+    )
+    full = tokenizer.decode(rendered.token_ids)
+    assert "What is 2+2?" not in targets and "And 3+3?" not in targets
+    assert "<|im_start|>assistant" not in targets
+    assert targets.rstrip().endswith("6<|im_end|>")
+    # Templates differ in whether reasoning_content is rendered at all; every
+    # rendered assistant token is trained and nothing else.
+    for reasoning in ("Simple arithmetic", "Also simple"):
+        assert (reasoning in targets) == (reasoning in full)
+    assert targets.count("<|im_end|>") == 2

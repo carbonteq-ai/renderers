@@ -201,6 +201,27 @@ class LFM25Renderer(MarkedReasoningRenderer):
             # The inference prompt already supplies the assistant opener. Its
             # exact token boundary is safer than searching decoded role text.
             complete = self._apply(messages[: index + 1], tools=tools)
+            if rendered.token_ids[: len(complete)] != complete and any(
+                later.get("role") == "user" for later in messages[index + 1 :]
+            ):
+                # The template rewrites assistant turns that precede a later
+                # user message (historical reasoning is dropped). Render this
+                # turn in that historical form and end it at its turn stop.
+                history = self._apply(
+                    [*messages[: index + 1], {"role": "user", "content": ""}],
+                    tools=tools,
+                )
+                opener = self._apply(messages[:index], tools=tools) if index else []
+                turn_stop = next(
+                    (
+                        k
+                        for k in range(len(opener), len(history))
+                        if history[k] in stop_ids
+                    ),
+                    None,
+                )
+                if turn_stop is not None:
+                    complete = history[: turn_stop + 1]
             if index:
                 prefix = self._apply(
                     messages[:index], tools=tools, add_generation_prompt=True

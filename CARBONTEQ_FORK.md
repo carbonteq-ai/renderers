@@ -35,8 +35,16 @@ cases, including three new header/tool masking regressions. On a real 1.2B
 three-step SFT probe, targets shrink from seven to three tokens and independent
 loss/parameter gradients match; three DPO updates retain prior behavior.
 This is target/numerical correctness evidence, not task convergence or native
-Verifiers trajectory qualification. No wheel release or production pin change
-is implied; version remains dev2 until a separate immutable release is built.
+Verifiers trajectory qualification.
+
+Follow-up (2026-10-02): the template rewrites assistant turns that precede a
+later user message (2.6B drops their reasoning), so a turn rendered as if last
+is not a prefix of the full conversation. `render` now derives such a turn's
+boundary from its historical form (the conversation through that turn plus an
+empty user message, ended at the first turn stop), restoring the
+`test_offsetless_tokenizers` reasoning-history case and adding
+`test_reasoning_history_turn_is_masked_in_its_rewritten_form`. Released as
+`0.1.12.post1.dev3` (see Releases).
 
 ## Distribution and remotes
 
