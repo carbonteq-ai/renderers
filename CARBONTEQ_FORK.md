@@ -10,7 +10,7 @@ in the Posttrain repository (`carbonteq-ai/rl`); the implementation plan is
 
 ## Status
 
-Candidate, published to GitHub. The latest release is `carbonteq-v0.1.12.post1.dev2` (pre-release); see Releases.
+Candidate, published to GitHub. The latest release is `carbonteq-v0.1.12.post1.dev3` (pre-release); see Releases.
 
 Source-only sampled-mask correction, branch `codex/lfm-sampled-mask`, based on
 ledger commit `d1458bf1a665278b05ac6e9ed0611abc78f953a8` (published dev2 behavior).
@@ -255,3 +255,14 @@ Record the new base commit in this file and in Posttrain's
   with `uv build` from `git archive` of the tagged commit; `twine check`
   passed and a clean install parses a repaired LFM2.5 call. Published to
   `pypi.lan/carbonteq/dev` by Posttrain run 36259417685.
+- `0.1.12.post1.dev3`: tag `carbonteq-v0.1.12.post1.dev3` at fork commit
+  `7fe5d06b9840ef0e4c7d43419cbd7f9afc1b727a` (branch `codex/lfm-sampled-mask`),
+  GitHub pre-release with retained assets. Adds the LFM sampled SFT mask
+  correction and history-turn masking in the template-rewritten form. Wheel
+  `carbonteq_renderers-0.1.12.post1.dev3-py3-none-any.whl` SHA-256
+  `57dcc6f8ba2db7bec21c75d40177059f704bb817a772558435e4d34c262ab5eb`; sdist
+  `carbonteq_renderers-0.1.12.post1.dev3.tar.gz` SHA-256
+  `650954a172b93524e871f873fad0d5448bc9e578bd8da2fe3e46d48b9307aa39`. Built
+  with `uv build` from `git archive` of the tagged commit; `twine check`
+  passed; the full suite passes 11,834 cases. Published to
+  `pypi.lan/carbonteq/dev` by Posttrain run 36996039659.
